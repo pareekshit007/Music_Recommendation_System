@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mood Music Recommender</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #000; /* Black background */
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+            background: linear-gradient(135deg, #000 0%, #333 100%); /* Dark gradient for depth */
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 30px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 2rem;
+            color: #ffffff;
+            position: relative;
+            overflow: hidden;
+            font-weight: 600;
+        }
+
+        h1::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            height: 3px;
+            background: #ff6347; /* Tomato color */
+            transform: translateX(-100%);
+            animation: slideIn 0.5s forwards;
+        }
+
+        @keyframes slideIn {
+            to {
+                transform: translateX(0);
+            }
+        }
+
+        h1:hover {
+            color: #ff6347; /* Color change on hover */
+            transform: scale(1.1);
+            transition: transform 0.3s ease, color 0.3s ease;
+        }
+
+        .mood-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .mood-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: #ffffff;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .mood-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+            animation: bounce 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes bounce {
+            0% {
+                transform: scale(1);
+            }
+            100% {
+                transform: scale(1.1);
+            }
+        }
+
+        #recommendations {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .song-card {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            opacity: 0;
+            animation: fadeIn 0.5s ease-out forwards;
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease;
+        }
+
+        .song-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+
+        .song-card:active {
+            transform: scale(0.98); /* Slight shrink when clicked */
+            box-shadow: none;
+        }
+
+        .song-info {
+            text-align: left;
+        }
+
+        .play-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* Spinner Style */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #ffffff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Fade-in Animation for song cards */
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Mood Music Recommender</h1>
+        <div class="mood-buttons">
+            <button class="mood-btn" data-mood="happy">😊 Happy</button>
+            <button class="mood-btn" data-mood="sad">😢 Sad</button>
+            <button class="mood-btn" data-mood="pop">🎉 Pop</button>
+            <button class="mood-btn" data-mood="jazz">🎷 Jazz</button>
+        </div>
+        <div id="recommendations"></div>
+        <div id="loading-spinner" class="spinner" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Music Dataset
+        const musicDatabase = {
+            happy: [
+                {title: "Happy", artist: "Pharrell Williams", link: "https://open.spotify.com/track/60a0Rd6pjrkxjPbaKzXjfq"},
+                {title: "Can't Stop the Feeling!", artist: "Justin Timberlake", link: "https://open.spotify.com/track/6RUKPb4LETWmmr3iAEQktW"},
+                {title: "Walking on Sunshine", artist: "Katrina and The Waves", link: "https://open.spotify.com/track/6f7TrIK5Glz5d3t4pR23gA"},
+                {title: "Don't Stop Me Now", artist: "Queen", link: "https://open.spotify.com/track/5T8EDUDqKcs0OSw47TDK3q"},
+                {title: "Good Vibrations", artist: "The Beach Boys", link: "https://open.spotify.com/track/4cGPlrP4mRNA2Y7Hxhb3pD"},
+                {title: "Uptown Funk", artist: "Mark Ronson ft. Bruno Mars", link: "https://open.spotify.com/track/32OlwWuMpZ6K1lWivnDTyK"},
+                {title: "I Wanna Dance with Somebody", artist: "Whitney Houston", link: "https://open.spotify.com/track/4UjfuKpfnJWMNm8JyUEPAY"},
+                {title: "Shake It Off", artist: "Taylor Swift", link: "https://open.spotify.com/track/2XhnkIIIR5z1AymPHnDzns"},
+                {title: "Happy Now", artist: "Kygo & Sandro Cavazza", link: "https://open.spotify.com/track/5tUPSekuhfmrWTIViKdL1k"},
+                {title: "Electric Love", artist: "BØRNS", link: "https://open.spotify.com/track/4fxd7jcH0ywpDtSFQoFbP8"}
+            ],
+            sad: [
+                {title: "Someone Like You", artist: "Adele", link: "https://open.spotify.com/track/5ZLAFmOTmMdehgSKyRcf5J"},
+                {title: "All By Myself", artist: "Eric Carmen", link: "https://open.spotify.com/track/5rEMdIxW9Ox5juMzreOHRV"},
+                {title: "Hello", artist: "Adele", link: "https://open.spotify.com/track/5Q0Ahh5PXCUTkOc1tCrqAr"},
+                {title: "Hurt", artist: "Johnny Cash", link: "https://open.spotify.com/track/5jyzvTk1j6ZCBFzktYhHhX"},
+                {title: "The Night We Met", artist: "Lord Huron", link: "https://open.spotify.com/track/2YZvLTO0s9XBYg8nYbaH4o"},
+                {title: "Tears Dry on Their Own", artist: "Amy Winehouse", link: "https://open.spotify.com/track/0QvmEK9A6ZwFpeftY3f8Ol"},
+                {title: "When I Was Your Man", artist: "Bruno Mars", link: "https://open.spotify.com/track/7shgjgeUd7GeHlCmK8zJ7M"}
+            ],
+            pop: [
+                {title: "Blinding Lights", artist: "The Weeknd", link: "https://open.spotify.com/track/0VjIjW4GlUZtH88fPR2aS6"},
+                {title: "Shape of You", artist: "Ed Sheeran", link: "https://open.spotify.com/track/7qiZfU4dY1lWLLV1B6zY6w"},
+                {title: "Levitating", artist: "Dua Lipa", link: "https://open.spotify.com/track/4pgoEd1jXY8saLU1djsQZ3"},
+                {title: "Don't Start Now", artist: "Dua Lipa", link: "https://open.spotify.com/track/0jN8z09kgkdh4kw9Ch6KeF"},
+                {title: "Save Your Tears", artist: "The Weeknd", link: "https://open.spotify.com/track/0L26k1AKM6B2WmlNw3kzF3"},
+                {title: "Dance Monkey", artist: "Tones and I", link: "https://open.spotify.com/track/2y8tBHLG8Rxfy8YmsnRQjS"},
+                {title: "Watermelon Sugar", artist: "Harry Styles", link: "https://open.spotify.com/track/6UelLddpR1VAv6HfhbQj6D"},
+                {title: "Old Town Road", artist: "Lil Nas X", link: "https://open.spotify.com/track/0eGsygTp906u18L0Oimnja"},
+                {title: "Good 4 U", artist: "Olivia Rodrigo", link: "https://open.spotify.com/track/6GRvQeruyzJ8tIMqlHl41l"},
+                {title: "As It Was", artist: "Harry Styles", link: "https://open.spotify.com/track/2PaBr1zTg1ZlfAkmJl0rZT"}
+            ]
+        };
+
+        // Function to display recommendations
+        function displayRecommendations(mood) {
+            const recommendations = document.getElementById("recommendations");
+            recommendations.innerHTML = ""; // Clear previous recommendations
+            document.getElementById('loading-spinner').style.display = 'block'; // Show loading spinner
+
+            setTimeout(() => {
+                document.getElementById('loading-spinner').style.display = 'none'; // Hide loading spinner
+                musicDatabase[mood].forEach((song) => {
+                    const card = document.createElement("div");
+                    card.classList.add("song-card");
+
+                    card.innerHTML = `
+                        <div class="song-info">
+                            <strong>${song.title}</strong><br>
+                            <span>${song.artist}</span>
+                        </div>
+                        <a href="${song.link}" target="_blank"><button class="play-btn">Play</button></a>
+                    `;
+
+                    recommendations.appendChild(card);
+                });
+            }, 1000); // Simulate a delay for loading the recommendations
+        }
+
+        // Event listener for mood buttons
+        document.querySelectorAll('.mood-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const mood = button.getAttribute('data-mood');
+                displayRecommendations(mood);
+            });
+        });
+    </script>
+</body>
+</html>
